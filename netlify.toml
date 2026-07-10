@@ -4,7 +4,8 @@
   publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION    = "18"
+  VITE_API_URL    = "https://ttb-label-verifier-production-042a.up.railway.app"
 
 [[redirects]]
   from   = "/*"

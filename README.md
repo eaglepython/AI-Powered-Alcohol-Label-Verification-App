@@ -10,6 +10,15 @@
 > **AI-powered compliance verification for alcohol beverage labels**  
 > Built for the Alcohol and Tobacco Tax and Trade Bureau (TTB) — Processing 150,000 label applications annually with 47 compliance agents.
 
+## 🚀 Live Demo
+
+| Service | URL |
+|---|---|
+| **Frontend** | https://ai-powered-alcohol-label-verification.netlify.app |
+| **Backend API** | https://ttb-label-verifier-production-042a.up.railway.app |
+| **API Docs** | https://ttb-label-verifier-production-042a.up.railway.app/docs |
+| **Health Check** | https://ttb-label-verifier-production-042a.up.railway.app/health |
+
 ---
 
 ## Challenge Overview
