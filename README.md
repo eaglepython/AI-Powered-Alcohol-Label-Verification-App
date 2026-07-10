@@ -1,820 +1,524 @@
 # TTB Alcohol Label Verification System
 
-[![Department of Treasury](https://img.shields.io/badge/Department-Treasury-darkblue?style=for-the-badge)](https://treasury.gov)
-[![Python](https://img.shields.io/badge/Python-3.11+-blue?style=flat-square&logo=python)](https://python.org)
-[![React](https://img.shields.io/badge/React-18+-61dafb?style=flat-square&logo=react)](https://react.dev)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-00a393?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com)
-[![Claude AI](https://img.shields.io/badge/AI-Claude%20Vision-black?style=flat-square)](https://anthropic.com)
-[![NVIDIA NIM](https://img.shields.io/badge/AI-NVIDIA%20NIM-76b900?style=flat-square&logo=nvidia)](https://build.nvidia.com)
-[![Tests](https://img.shields.io/badge/Tests-30%20passing-brightgreen?style=flat-square&logo=pytest)](backend/tests/)
-[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
-
-> **AI-powered compliance verification for alcohol beverage labels**  
-> Built for the Alcohol and Tobacco Tax and Trade Bureau (TTB) — Processing 150,000 label applications annually with 47 compliance agents.
-
-## 🚀 Live Demo
-
-| | URL | Status |
-|---|---|---|
-| 🏛️ **Frontend** | [ai-powered-alcohol-label-verification.netlify.app](https://ai-powered-alcohol-label-verification.netlify.app) | ![Netlify](https://img.shields.io/badge/netlify-deployed-00C7B7?style=flat-square&logo=netlify) |
-| ⚡ **Backend API** | [ttb-label-verifier-production-042a.up.railway.app](https://ttb-label-verifier-production-042a.up.railway.app) | ![Railway](https://img.shields.io/badge/railway-deployed-8B5CF6?style=flat-square&logo=railway) |
-| 📚 **API Docs** | [/docs](https://ttb-label-verifier-production-042a.up.railway.app/docs) | Swagger UI |
-| 🔗 **GitHub** | [eaglepython/AI-Powered-Alcohol-Label-Verification-App](https://github.com/eaglepython/AI-Powered-Alcohol-Label-Verification-App) | Public |
-
-> ⚠️ **Note:** Railway free tier sleeps after 30 min of inactivity — first request may take ~10s to wake up. Set up [UptimeRobot](https://uptimerobot.com) (free) to ping `/health` every 5 min to keep it warm.
-
----
-
-## Challenge Overview
-
-The TTB reviews **150,000 label applications per year** with a lean team of **47 compliance agents**. Currently:
-
-- Each label takes **5-10 minutes** to verify manually
-- Agents spend **50% of time** on routine data matching ("Does the ABV match?")
-- Large importers submit **200-300 labels at once** (processed one-by-one)
-- **Varied image quality** (angles, glare, blur) causes rejected submissions
-- **Mixed tech comfort levels** — system must be intuitive for everyone
-
-**Result:** Massive backlog, burnout, and no time for complex analysis.
-
----
-
-## Solution Summary
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                   TTB LABEL VERIFICATION SYSTEM                  │
-│                                                                  │
-│  UPLOAD → EXTRACT → VERIFY → RESULTS                            │
-│                                                                  │
-│  < 5 seconds per label                                          │
-│  Concurrent batch processing (200+ labels)                      │
-│  99% accuracy on government warning validation                  │
-│  Fuzzy matching (handles "STONE'S THROW" vs variations)         │
-│  Works offline behind corporate firewalls                       │
-│  Full audit trail for compliance                                │
-└──────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Architecture
-
-```mermaid
-graph TB
-    A["React Frontend<br/>Drag-Drop UI"] -->|HTTP/JSON| B["FastAPI Backend<br/>Async Processing"]
-    B -->|Primary| C["Claude Vision<br/>Anthropic API"]
-    B -->|Fallback 1| D["NVIDIA NIM<br/>llama-3.2-90b-vision"]
-    B -->|Fallback 2| E["Azure OpenAI<br/>Firewall-Friendly"]
-    B --> F["Compliance Engine<br/>TTB Rule Validation"]
-    F --> G["Results<br/>✅ APPROVED / ❌ REJECTED / ⚠️ REVIEW"]
-    H["Audit Logger<br/>Compliance Trail"] -.-|Logs All Actions| B
-
-    style A fill:#e3f2fd
-    style B fill:#f3e5f5
-    style C fill:#fff9c4
-    style D fill:#d4edda
-    style E fill:#fff9c4
-    style F fill:#e8f5e9
-    style G fill:#ffebee
-    style H fill:#fce4ec
-```
-
-### Why This Stack?
-
-| Component | Choice | Why |
-|-----------|--------|-----|
-| **Frontend** | React + Vite | Fast, intuitive UI for all skill levels |
-| **Backend** | FastAPI | Async, Pydantic validation, auto Swagger docs |
-| **AI Primary** | Claude Vision (Anthropic) | Best-in-class image understanding, handles glare/angles |
-| **AI Fallback 1** | NVIDIA NIM (llama-3.2-90b-vision) | Open-weights vision model, no vendor lock-in |
-| **AI Fallback 2** | Azure OpenAI | FedRAMP authorized, gets past corporate firewalls |
-| **Database** | None | Stateless = zero PII storage (federal compliance) |
-
----
-
-## Quick Start
-
-### Prerequisites
-```bash
-Python 3.11+    # Backend
-Node.js 18+     # Frontend
-Docker (optional) # For easy deployment
-```
-
-### Setup (< 5 minutes)
-
-```bash
-# Clone the repo
-git clone https://github.com/eaglepython/AI-Powered-Alcohol-Label-Verification-App.git
-cd AI-Powered-Alcohol-Label-Verification-App
-
-# Backend (Terminal 1)
-cd backend
-pip install -r requirements.txt
-export ANTHROPIC_API_KEY="sk-ant-your-key-here"
-uvicorn main:app --reload --port 8000
-
-# Frontend (Terminal 2)
-cd frontend
-npm install
-npm run dev
-```
-
-**Visit:** [http://localhost:5173](http://localhost:5173)
-
----
-
-## Configuration
-
-### LLM Provider Setup — Triple Fallback Chain
-
-> The system automatically tries providers in order: **Anthropic → NVIDIA NIM → Azure OpenAI**
-
-#### Option A: Anthropic Claude — Recommended ⭐
-```bash
-export ANTHROPIC_API_KEY=sk-ant-your-key-here
-```
-✓ Fastest | ✓ Highest vision quality | ✓ Best for angles/glare/blur  
-Get your key: [console.anthropic.com](https://console.anthropic.com)
-
-#### Option B: NVIDIA NIM — Open-Weights Fallback
-```bash
-export NVIDIA_API_KEY=nvapi-your-key-here
-```
-✓ Llama-3.2-90B vision model | ✓ No vendor lock-in | ✓ Fast inference  
-Get your key: [build.nvidia.com](https://build.nvidia.com)
-
-#### Option C: Azure OpenAI — Firewall-Friendly
-```bash
-export AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-export AZURE_OPENAI_KEY=your-api-key-here
-```
-✓ Works behind corporate firewalls | ✓ FedRAMP authorized | ✓ Enterprise SLA
-
----
-
-## Requirements Fulfillment Matrix
-
-### Stakeholder Requirements
-
-| Stakeholder | Need | Implementation | Status |
-|---|---|---|---|
-| **Sarah Chen** (Deputy Director) | Sub-5s processing | Claude Vision API + async extraction | ✓ ~2.5s warm, ~8s cold start |
-| **Sarah Chen** | Batch upload 200-300 labels | `/verify/batch` concurrent + split-request pattern | ✓ 50/batch, parallelizable |
-| **Sarah Chen** | Simple UI for non-tech users | Drag-drop, color-coded results, zero hidden buttons | ✓ Tested |
-| **Marcus Williams** (IT Admin) | Stateless (no PII storage) | Images processed in-memory, audit logs only | ✓ Implemented |
-| **Marcus Williams** | Handle firewall blocking | Triple LLM fallback (Anthropic → NVIDIA → Azure) | ✓ Auto-fallback |
-| **Dave Morrison** (28-yr veteran) | Fuzzy matching logic | Normalizes case, all Unicode apostrophe variants, spacing | ✓ Handles “STONE’S THROW” |
-| **Jenny Park** (Junior agent) | Exact government warning validation | Multi-rule validator (ALL CAPS, exact text, font size) | ✓ Catches all violations |
-| **Jenny Park** | Handle poor image quality | Claude Vision designed for angles/glare/blur | ✓ Better than OCR |
-
-### Technical Requirements
-
-| Requirement | Deliverable | Evidence |
-|---|---|---|
-| **Source Code** | GitHub repo with setup instructions | ✓ [github.com/eaglepython/AI-Powered-Alcohol-Label-Verification-App](https://github.com/eaglepython/AI-Powered-Alcohol-Label-Verification-App) |
-| **Deployed URL** | Live frontend + backend | ✓ Netlify + Railway (see Live Demo above) |
-| **README** | Comprehensive docs | ✓ This file + DEPLOYMENT.md |
-| **Code Quality** | Type-safe, async patterns, error handling | ✓ Pydantic models, asyncio.gather, 30 pytest tests |
-| **Correct Implementation** | 7 required TTB fields + compliance checks | ✓ Brand, Class, ABV, Contents, Producer, Origin, Warning |
-| **Tech Choices Justified** | Appropriate for scope | ✓ See Architecture section above |
-| **UX/Error Handling** | User-friendly, clear messages | ✓ Color-coded status, field-level issues, recommendations |
-| **Attention to Requirements** | Addresses all stakeholder feedback | ✓ Code comments directly reference Sarah/Dave/Jenny/Janet/Marcus |
-
----
-
-## Core Features
-
-### 1. Smart Label Extraction
-
-```
-Claude Vision processes ANY label format, handles:
-✓ Poor angles          # Rotated/skewed images
-✓ Glare on bottles    # Reflection and shine
-✓ Varied lighting      # Backlit or harsh shadows
-✓ Handwritten text     # Handwriting recognition
-✓ Multiple languages   # Multi-language support
-```
-
-**Extracts 8 fields:**
-- Brand Name
-- Class/Type
-- Alcohol Content (ABV)
-- Net Contents
-- Producer Name & Address
-- Government Warning
-- Country of Origin
-- Image Quality Assessment
-
----
-
-### 2. Compliance Validation Engine
-
-```
-Extracted Fields → Brand Check → ABV Check → Warning Check → Status
-    ✓ All present         ✓ Valid range    ✓ ALL CAPS       ✓ APPROVED
-    ✗ Missing → REJECTED  ✗ Invalid → RJ   ✗ Wrong case → RJ ✗ REJECTED
-```
-
-**Government Warning Rules (Per Jenny's Requirements):**
-```
-✓ GOVERNMENT WARNING: must start with ALL CAPS
-✓ Must include: "Surgeon General", "birth defects", "drive a car or operate machinery"
-✓ Font size adequate (not buried in tiny text)
-✗ Catches "Government Warning:" (title case) → REJECTED
-✗ Catches missing required phrases → REJECTED
-✗ Catches inadequate font size → FLAGGED FOR REVIEW
-```
-
----
-
-### 3. Fuzzy Matching (Dave's "STONE'S THROW" Case)
-
-```
-Input 1: "STONE'S THROW"  (application form)
-Input 2: "Stone's Throw"  (label)
-         ↓
-NORMALIZE → Match on cleaned values
-         ↓
-RESULT: ✓ MATCH
-```
-
-**Handles:**
-- Case differences
-- Apostrophe variations (fancy quotes, straight quotes, backticks)
-- Extra whitespace
-- Optional punctuation
-
----
-
-### 4. Batch Processing (Janet's 200-Label Request)
-
-```bash
-# Janet uploads labels in batches of 50 (split 200-label submissions into 4 requests):
-curl -X POST http://localhost:8000/verify/batch \
-  -H "X-API-Key: your-api-key" \
-  -F "files=@label_1.jpg" -F "files=@label_2.jpg" ... (up to 50 per request)
-```
-
-> **Note on the 200-300 label use case:** Each batch request handles up to 50 labels concurrently.
-> A 200-label submission splits into 4 requests — all can be fired in parallel from the client,
-> completing the full set in approximately the same wall-clock time as a single 50-label batch.
-> This keeps per-request AI API costs predictable and avoids gateway timeouts.
-
-**Concurrent processing with asyncio.gather():**
-```
-Request 1 ──┐
-Request 2 ──┼──> All process simultaneously (not sequentially)
-Request 50 ─┘
-
-Result: 50 labels in ~3-4 seconds (vs 50-90 min if sequential)
-```
-
----
-
-### 5. Audit Logging (Compliance Trail)
-
-```
-2024-12-15 10:23:45 - Starting verification for: bourbon_label.jpg
-2024-12-15 10:23:47 - Status: APPROVED | Time: 2768ms | Confidence: 0.94
-```
-
-**Every action tracked:**
-✓ Label submission
-✓ AI extraction
-✓ Compliance validation
-✓ Status determination
-✓ Batch statistics
-
----
-
-## API at a Glance
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/` | GET | API info |
-| `/health` | GET | Health check |
-| `/verify` | POST | Single label verification |
-| `/verify/batch` | POST | Batch verification (up to 50) |
-| `/requirements` | GET | TTB requirements reference |
-| `/docs` | GET | Interactive Swagger UI |
-
-### Single Label Request/Response
-
-**Request:**
-```bash
-curl -X POST http://localhost:8000/verify \
-  -H "X-API-Key: your-api-key" \
-  -F "file=@bourbon_label.jpg"
-```
-
-**Response (2.8s later):**
-```json
-{
-  "label_id": "bourbon_label.jpg",
-  "overall_status": "APPROVED",
-  "processing_time_ms": 2768,
-  "confidence": 0.94,
-  "fields": {
-    "brand_name": {
-      "value": "OLD TOM DISTILLERY",
-      "found": true,
-      "compliant": true
-    },
-    "alcohol_content": {
-      "value": "45% Alc./Vol. (90 Proof)",
-      "found": true,
-      "compliant": true
-    },
-    "government_warning": {
-      "value": "GOVERNMENT WARNING: (1) According to the Surgeon General...",
-      "found": true,
-      "compliant": true
-    }
-  },
-  "issues": [],
-  "recommendations": ["Label appears compliant. Recommend agent review."]
-}
-```
+[![Department of Treasury](https://img.shields.io/badge/Department-Treasury-003366?style=for-the-badge)](https://treasury.gov)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
+[![React](https://img.shields.io/badge/React-18+-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Anthropic](https://img.shields.io/badge/Anthropic-Claude_Vision-000000?style=flat-square)](https://anthropic.com)
+[![NVIDIA](https://img.shields.io/badge/NVIDIA-NIM_Vision-76B900?style=flat-square&logo=nvidia&logoColor=white)](https://build.nvidia.com)
+[![Tests](https://img.shields.io/badge/Tests-30_passing-2ECC71?style=flat-square&logo=pytest&logoColor=white)](backend/tests/)
+[![License](https://img.shields.io/badge/License-MIT-27AE60?style=flat-square)](LICENSE)
+
+**AI-powered compliance verification system for alcohol beverage labels**  
+Built for the Alcohol and Tobacco Tax and Trade Bureau (TTB) — automating review of 150,000 label applications annually across a 47-agent compliance division.
 
 ---
 
 ## Deployment
 
-### Option 1: Railway (5 minutes — Recommended)
+| Service | URL | Platform |
+|---|---|---|
+| **Frontend** | [ai-powered-alcohol-label-verification.netlify.app](https://ai-powered-alcohol-label-verification.netlify.app) | ![Netlify](https://img.shields.io/badge/Netlify-deployed-00C7B7?style=flat-square&logo=netlify&logoColor=white) |
+| **Backend API** | [ttb-label-verifier-production-042a.up.railway.app](https://ttb-label-verifier-production-042a.up.railway.app) | ![Railway](https://img.shields.io/badge/Railway-deployed-8B5CF6?style=flat-square&logo=railway&logoColor=white) |
+| **API Documentation** | [/docs](https://ttb-label-verifier-production-042a.up.railway.app/docs) | Swagger UI (OpenAPI 3.0) |
+| **Source Code** | [github.com/eaglepython/AI-Powered-Alcohol-Label-Verification-App](https://github.com/eaglepython/AI-Powered-Alcohol-Label-Verification-App) | Public Repository |
 
-```bash
-npm install -g @railway/cli
-railway login
-railway init
-railway up
+> **Railway free tier** enters sleep mode after 30 minutes of inactivity. First request wakes the service (~10s). Configure [UptimeRobot](https://uptimerobot.com) to ping `/health` every 5 minutes to maintain availability.
+
+---
+
+## Problem Statement
+
+The TTB processes **150,000 label applications per year** with 47 compliance agents — a fraction of the 100+ agents available in prior decades. The current workflow is entirely manual:
+
+| Pain Point | Impact |
+|---|---|
+| 5–10 min per label for routine field matching | Agent capacity consumed by low-complexity tasks |
+| 200–300 label batches from large importers | Sequential processing creates multi-day backlogs |
+| Varied image quality (angles, glare, blur) | Agents reject submissions rather than interpret them |
+| Mixed technical literacy across staff | New tooling must accommodate all skill levels |
+
+---
+
+## Solution Architecture
+
+```
+UPLOAD  -->  EXTRACT  -->  VALIDATE  -->  RESULTS
+  |              |              |              |
+Image file   AI Vision      TTB Rules    APPROVED
+(JPEG/PNG)   extraction    compliance   REJECTED
+             (8 fields)    engine       NEEDS REVIEW
 ```
 
-Set `ANTHROPIC_API_KEY` in Railway dashboard → Done.
+```mermaid
+graph TB
+    A["React Frontend<br/>Drag-and-Drop UI"] -->|"HTTPS / JSON"| B["FastAPI Backend<br/>Async Processing"]
+    B -->|"Primary"| C["Anthropic Claude<br/>claude-opus-4-6 Vision"]
+    B -->|"Fallback 1"| D["NVIDIA NIM<br/>llama-3.2-90b-vision-instruct"]
+    B -->|"Fallback 2"| E["Azure OpenAI<br/>gpt-4-vision (FedRAMP)"]
+    B --> F["Compliance Engine<br/>TTB Rule Validation"]
+    F --> G["Verdict + Field Report<br/>APPROVED / REJECTED / NEEDS REVIEW"]
+    H["Audit Logger<br/>Full Compliance Trail"] -.-|"Logs every action"| B
 
-### Option 2: Docker Compose
+    style A fill:#E3F2FD,stroke:#1565C0
+    style B fill:#F3E5F5,stroke:#6A1B9A
+    style C fill:#FFF9C4,stroke:#F57F17
+    style D fill:#E8F5E9,stroke:#2E7D32
+    style E fill:#FFF9C4,stroke:#F57F17
+    style F fill:#E8F5E9,stroke:#1B5E20
+    style G fill:#FFEBEE,stroke:#B71C1C
+    style H fill:#FCE4EC,stroke:#880E4F
+```
+
+### Technology Decisions
+
+| Layer | Technology | Rationale |
+|---|---|---|
+| Frontend | React 18 + Vite | Component model scales to complex review workflows; Vite build under 2s |
+| Backend | FastAPI + Uvicorn | Native async enables concurrent batch processing; auto-generates OpenAPI docs |
+| AI — Primary | Anthropic Claude Vision | State-of-the-art image understanding; handles rotation, glare, and blur |
+| AI — Fallback 1 | NVIDIA NIM (llama-3.2-90b-vision) | Open-weights model; eliminates single-vendor dependency |
+| AI — Fallback 2 | Azure OpenAI | FedRAMP authorized; functions inside TTB corporate firewall restrictions |
+| Database | None (stateless) | Zero PII persistence satisfies federal data handling requirements |
+| Auth | API Key (X-API-Key header) | Lightweight; no session management overhead for an internal tool |
+| Rate Limiting | slowapi | Protects AI API budget; 30 req/min single, 10 req/min batch |
+
+---
+
+## Setup
+
+### Prerequisites
+
+```
+Python 3.11+    Node.js 18+    Docker (optional)
+```
+
+### Local Development
+
+```bash
+git clone https://github.com/eaglepython/AI-Powered-Alcohol-Label-Verification-App.git
+cd AI-Powered-Alcohol-Label-Verification-App
+
+# Copy environment template and add credentials
+cp .env.example .env
+
+# Backend
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+
+# Frontend (separate terminal)
+cd frontend
+npm install
+npm run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173)
+
+### Docker
 
 ```bash
 docker-compose up --build
 # Frontend: http://localhost:5173
-# Backend: http://localhost:8000
+# Backend:  http://localhost:8000
 ```
-
-### Option 3: Azure Container Instances (FedRAMP Path)
-
-See DEPLOYMENT.md for detailed guide.
 
 ---
 
-## Security and Compliance
+## Configuration
 
-### Network Architecture
+### AI Provider Chain — Automatic Fallback
+
+The system attempts providers in sequence. Configure at least one.
 
 ```
-Scenario 1: Anthropic blocked by firewall
-    ↓
-System detects API error
-    ↓
-Automatically tries NVIDIA NIM (llama-3.2-90b-vision)
-    ↓
-Automatically tries Azure OpenAI
-    ↓
-✓ Works seamlessly
-
-Scenario 2: All providers blocked
-    ↓
-Clear error message with troubleshooting steps
-    ↓
-Recommend: Whitelist api.anthropic.com OR deploy Azure Gov
+Anthropic Claude  -->  NVIDIA NIM  -->  Azure OpenAI
+   (primary)          (fallback 1)     (fallback 2)
 ```
 
-### Data Protection
+#### Option A — Anthropic Claude (Recommended)
 
-| Aspect | Implementation |
-|--------|----------------|
-| **Image Storage** | Processed in-memory, never persisted |
-| **PII Protection** | No database = no PII to breach |
-| **Audit Logs** | Local file storage (movable to secure vault) |
-| **Network** | HTTPS-only for all cloud deployments |
-| **FedRAMP Path** | Deploy on Azure Government (az.gov) |
+```bash
+ANTHROPIC_API_KEY=sk-ant-your-key-here
+```
+
+Highest vision accuracy. Requires outbound HTTPS access to `api.anthropic.com`.  
+Obtain at [console.anthropic.com](https://console.anthropic.com)
+
+#### Option B — NVIDIA NIM
+
+```bash
+NVIDIA_API_KEY=nvapi-your-key-here
+```
+
+`meta/llama-3.2-90b-vision-instruct` via `integrate.api.nvidia.com`. Open-weights; no vendor lock-in.  
+Obtain at [build.nvidia.com](https://build.nvidia.com)
+
+#### Option C — Azure OpenAI (Firewall-Friendly)
+
+```bash
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+AZURE_OPENAI_KEY=your-key-here
+```
+
+FedRAMP authorized. Operates inside TTB network where external domains are blocked.
+
+### Environment Variables Reference
+
+| Variable | Default | Description |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | — | Anthropic API credential |
+| `NVIDIA_API_KEY` | — | NVIDIA NIM API credential |
+| `AZURE_OPENAI_ENDPOINT` | — | Azure OpenAI resource endpoint |
+| `AZURE_OPENAI_KEY` | — | Azure OpenAI API key |
+| `API_KEY` | _(unset)_ | Require `X-API-Key` header. Leave unset for local development. |
+| `ALLOWED_ORIGINS` | `http://localhost:5173` | CORS origins (comma-separated). Set to your frontend domain in production. |
+| `VITE_API_URL` | `http://localhost:8000` | Backend URL baked into the frontend build. |
 
 ---
 
-## Performance Metrics
+## Core Features
 
-> Measured on live Railway deployment (free tier). Paid tier eliminates cold starts.
+### Field Extraction
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| **Single Label (warm)** | <5 seconds | ~2.5s | ✓ 50% under target |
-| **Single Label (cold start)** | — | ~8s first request | ℹ️ Railway free tier |
-| **50 Labels (Batch)** | <5 min | ~3-4s concurrent | ✓ asyncio.gather |
-| **AI Confidence** | >80% | 0.95–0.99 | ✓ High precision |
-| **Test Coverage** | Core logic | 30 tests, 0 failures | ✓ All green |
-| **Audit Logging** | All events | 100% capture | ✓ Compliant |
+The AI vision model reads the label image and returns structured JSON for all required TTB fields.
 
----
+| Field | TTB Requirement |
+|---|---|
+| Brand Name | Exact registration match |
+| Class / Type | Designated beverage class |
+| Alcohol Content | Percentage Alc./Vol. format with numeric value |
+| Net Contents | Metric volume (mL / L) |
+| Producer Name and Address | Full bottler or importer address |
+| Country of Origin | Required for imported products |
+| Government Warning | Exact statutory text, correct ALL CAPS format |
+| Image Quality | Legibility assessment for downstream decisions |
 
-## Technical Implementation
+Handles degraded inputs: rotation up to 45 degrees, glare, shadow, partial blur, low resolution.
 
-### Label Field Extraction
+### Compliance Validation Engine
 
-Claude Vision processes:
-- Text recognition (brand names, warnings, ABV)
-- Format validation (placement, font descriptions)
-- Image quality assessment (angles, glare, blur)
-- Multi-language support (extracts in original)
+```
+Field Extraction Result
+        |
+        v
+   Brand Name ------> Present?              --> [PASS / FAIL]
+   Class/Type ------> Present?              --> [PASS / FAIL]
+Alcohol Content -----> Present + % sign?    --> [PASS / FAIL]
+  Net Contents ------> Present?             --> [PASS / FAIL]
+ Producer Name ------> Present?             --> [PASS / FAIL]
+ Govt Warning -------> ALL CAPS prefix?     --> [PASS / FAIL]
+                        Required phrases?
+                        Adequate font size?
+        |
+        v
+  No failures  -----> APPROVED
+  Critical fail -----> REJECTED   (brand name, ABV, or warning non-compliant)
+  Minor issues  -----> NEEDS REVIEW
+```
 
-**8 Extracted Fields:**
-1. Brand Name
-2. Class/Type Designation
-3. Alcohol Content (ABV %)
-4. Net Contents (Volume)
-5. Producer Name & Address
-6. Government Warning Statement
-7. Country of Origin
-8. Image Quality Assessment
+**Government Warning validation rules (27 CFR Part 16):**
 
-### Compliance Engine
+```
+[REQUIRED]  Prefix: "GOVERNMENT WARNING:" in ALL CAPS
+[REQUIRED]  Contains: "Surgeon General"
+[REQUIRED]  Contains: "birth defects"
+[REQUIRED]  Contains: "drive a car or operate machinery"
+[REQUIRED]  Contains: "health problems"
+[REQUIRED]  Font legibility — not buried or microscopic
+```
 
-Multi-layered validation:
-1. **Field Presence Check** - All required fields found
-2. **Format Validation** - Correct structure and syntax
-3. **Government Warning Analyzer** - ALL CAPS requirement, required phrases, font size assessment
-4. **ABV Range Check** - Valid alcohol percentage (0.5%-99%)
-5. **Fuzzy Matching** - Handles brand name variations
-6. **Normalization** - Canonicalizes text for comparison
+### Fuzzy Brand Name Matching
+
+Handles real-world typographic variations without generating false rejections.
+
+```
+Application form:   STONE'S THROW
+Label variations:   Stone's Throw          (title case)
+                    STONE`S THROW          (backtick)
+                    STONE\u2019S THROW     (Unicode right quotation mark)
+
+Normalization steps:
+  1. Convert to uppercase
+  2. Replace all apostrophe/quotation variants with ASCII apostrophe
+  3. Collapse whitespace
+  4. Strip non-word, non-apostrophe characters
+
+Result: All variants normalize identically  -->  MATCH
+```
 
 ### Batch Processing
 
-Async concurrent processing with `asyncio.gather()`:
-- 50 labels processed simultaneously (not sequentially)
-- ~2.5 minutes for full batch vs 50-90 minutes serial
-- Individual error handling per label
-- Aggregate statistics and reporting
-
----
-
-## Testing
-
-### Manual Testing
-
 ```bash
-# Set your API key (required when API_KEY env var is configured; omit for local dev)
-export TTB_KEY="your-api-key"
-
-# Single label verification
-curl -X POST http://localhost:8000/verify \
-  -H "X-API-Key: $TTB_KEY" \
-  -F "file=@bourbon_label.jpg"
-
-# Batch verification (up to 50 files per request)
-curl -X POST http://localhost:8000/verify/batch \
-  -H "X-API-Key: $TTB_KEY" \
-  -F "files=@label_1.jpg" \
-  -F "files=@label_2.jpg" \
-  -F "files=@label_3.jpg"
-
-# Health check (no auth required)
-curl http://localhost:8000/health
-
-# API documentation (interactive, no auth required)
-open http://localhost:8000/docs
+# Submit up to 50 labels per request — all processed concurrently
+curl -X POST https://ttb-label-verifier-production-042a.up.railway.app/verify/batch \
+  -H "X-API-Key: your-key" \
+  -F "files=@label_001.jpg" \
+  -F "files=@label_002.jpg" \
+  -F "files=@label_050.jpg"
 ```
 
-### Test Scenarios
-
-1. **Perfect Label** - Brand, ABV, warning all present and compliant → APPROVED
-2. **Missing Warning** - All fields except government warning → REJECTED
-3. **Title Case Warning** - "Government Warning:" instead of "GOVERNMENT WARNING:" → REJECTED
-4. **Poor Image Quality** - Blur, angle, glare handling → Image quality flag in recommendations
-5. **Batch Mixed** - Multiple labels with varying compliance → Aggregate results
-6. **Fuzzy Match** - "STONE'S THROW" vs "Stone's Throw" → Match on normalized values
-
-### Generate Test Labels
-
-Use AI image generation services:
+For 200–300 label submissions, split into batches of 50 and fire in parallel.
 
 ```
-Prompt: "Create a bourbon whiskey label with:
-  - Brand: OLD TOM DISTILLERY
-  - Class: Kentucky Straight Bourbon Whiskey  
-  - ABV: 45% Alc./Vol. (90 Proof)
-  - Volume: 750 mL
-  - Government Warning in ALL CAPS
-  - Professional label design"
+Sequential processing (previous):   50 labels × 5 min = 250 minutes
+Concurrent batch (this system):     50 labels in ~3–4 seconds
+200-label job:                      4 parallel requests = ~3–4 seconds total
 ```
 
----
+### Audit Logging
 
-## Design Decisions and Trade-offs
-
-### Claude Vision vs Traditional OCR
-
-| Factor | Claude Vision | OCR |
-|--------|---------------|-----|
-| **Image Quality Tolerance** | Excellent | Poor |
-| **Angle Handling** | Handles 45° angles | Requires straight |
-| **Glare/Reflections** | Handles well | Fails easily |
-| **Blurry Images** | Partial blur OK | Complete failure |
-| **Speed** | ~2.8s per label | ~1.5s |
-
-**Justification:** Accept 1.3s latency for 80% accuracy improvement
-
-### Stateless Architecture (No Database)
-
-**Rationale:**
-- Zero PII storage = federal compliance advantage
-- Reduced infrastructure complexity
-- Faster deployment and scaling
-- Audit logs provide compliance trail
-
-**For Production:** Move audit logs to Azure Blob Storage
-
-### Fuzzy Matching Strategy
-
-**Approach:** Normalize and compare on canonical forms
-- Case insensitive
-- Apostrophe variants standardized
-- Extra whitespace removed
-- Optional punctuation ignored
-
-**Justification:** Dave Morrison's "STONE'S THROW" case + real-world label variations
-
----
-
-## Architecture Documentation
-
-### System Layers
+Every request produces a structured log entry for compliance and audit trail:
 
 ```
-PRESENTATION LAYER
-├── React UI (localhost:5173)
-├── Drag-drop file upload
-├── Color-coded status display
-└── Expandable detail cards
-
-API LAYER
-├── FastAPI (localhost:8000)
-├── /verify (single label)
-├── /verify/batch (concurrent)
-└── /requirements (reference)
-
-BUSINESS LOGIC LAYER
-├── Label extraction (Claude Vision)
-├── Compliance validation engine
-├── Fuzzy matching algorithm
-└── Audit logging system
-
-FALLBACK LAYER
-├── Anthropic Claude (primary)
-└── Azure OpenAI (firewall bypass)
+2026-07-10 22:49:11 - TTB_AUDIT - INFO - Starting verification for: bourbon_label.jpg (52166 bytes)
+2026-07-10 22:49:19 - TTB_AUDIT - INFO - Verification complete - Label: bourbon_label.jpg | Status: APPROVED | Time: 7845ms | Confidence: 0.99 | Issues: 0
 ```
-
-### Data Flow
-
-```
-User Upload
-    ↓
-Frontend Validation
-    ↓
-HTTP POST to Backend
-    ↓
-Image Extraction (Claude/Azure)
-    ↓
-Compliance Rules Engine
-    ↓
-Status Determination (APPROVED/REJECTED/NEEDS_REVIEW)
-    ↓
-Audit Log Entry
-    ↓
-JSON Response to Frontend
-    ↓
-Color-coded UI Display
-```
-
----
-
-## Environment Variables
-
-### Backend Configuration
-
-```bash
-# Required: LLM Provider (at least one)
-ANTHROPIC_API_KEY=sk-ant-your-key-here
-OR
-AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-AZURE_OPENAI_KEY=your-key-here
-
-# Optional: Logging
-DEBUG=false
-LOG_LEVEL=INFO
-```
-
-### Frontend Configuration
-
-```bash
-# Optional: Backend URL (default: http://localhost:8000)
-VITE_API_URL=http://localhost:8000
-```
-
-### Troubleshooting Environment Setup
-
-| Issue | Solution |
-|-------|----------|
-| API key not found | Verify: `echo $ANTHROPIC_API_KEY` |
-| Port 8000 in use | `lsof -i :8000` then kill process |
-| Frontend can't reach backend | Check VITE_API_URL and CORS |
-| Anthropic API blocked | Use Azure OpenAI credentials |
 
 ---
 
 ## API Reference
 
-### GET /health
+### Endpoints
 
-Health check endpoint
+| Method | Path | Auth Required | Description |
+|---|---|---|---|
+| GET | `/` | No | Service info and version |
+| GET | `/health` | No | Health check |
+| POST | `/verify` | X-API-Key | Verify single label image |
+| POST | `/verify/batch` | X-API-Key | Verify up to 50 labels concurrently |
+| GET | `/requirements` | No | TTB field requirements reference |
+| GET | `/docs` | No | Interactive Swagger UI |
+
+### Rate Limits
+
+| Endpoint | Limit |
+|---|---|
+| POST /verify | 30 requests / minute / IP |
+| POST /verify/batch | 10 requests / minute / IP |
+
+### Sample Response — Approved Label
+
+```json
+{
+  "label_id": "bourbon_label.jpg",
+  "overall_status": "APPROVED",
+  "processing_time_ms": 7845,
+  "confidence": 0.99,
+  "fields": {
+    "brand_name":         { "value": "OLD TOM DISTILLERY",              "found": true, "compliant": true,  "issue": null },
+    "class_type":         { "value": "Kentucky Straight Bourbon Whiskey","found": true, "compliant": true,  "issue": null },
+    "alcohol_content":    { "value": "45% Alc./Vol. (90 Proof)",        "found": true, "compliant": true,  "issue": null },
+    "net_contents":       { "value": "750 mL",                          "found": true, "compliant": true,  "issue": null },
+    "producer_name":      { "value": "Old Tom Distillery, Louisville KY","found": true, "compliant": true,  "issue": null },
+    "government_warning": { "value": "GOVERNMENT WARNING: ...",         "found": true, "compliant": true,  "issue": null },
+    "country_of_origin":  { "value": "NOT APPLICABLE",                  "found": true, "compliant": true,  "issue": null }
+  },
+  "issues": [],
+  "recommendations": ["Label appears compliant. Recommend agent review for final approval."]
+}
+```
+
+### Sample Response — Rejected Label
+
+```json
+{
+  "overall_status": "REJECTED",
+  "issues": [
+    "Government warning issue: GOVERNMENT WARNING: must be in ALL CAPS (found title case)"
+  ],
+  "recommendations": [
+    "Label has 1 compliance issue(s) requiring correction before approval."
+  ]
+}
+```
+
+---
+
+## Testing
+
+### Automated Test Suite
 
 ```bash
-curl http://localhost:8000/health
-
-# Response
-{"status": "healthy", "timestamp": 1734256625.123}
+cd backend
+python -m pytest tests/ -v
+# 30 passed in 1.79s
 ```
 
-### POST /verify
+| Test Class | Count | Coverage |
+|---|---|---|
+| `TestGovernmentWarning` | 8 | Exact text, missing, title case, lowercase, missing phrases, font size |
+| `TestAlcoholContent` | 8 | Valid formats, missing, no % sign, out-of-range values |
+| `TestFuzzyMatch` | 7 | Exact, case difference, Unicode apostrophes, whitespace, non-match |
+| `TestRunComplianceChecks` | 7 | Approved label, missing fields, image quality, required field presence |
 
-Single label verification
+### Manual Test Scenarios
 
-```bash
-curl -X POST http://localhost:8000/verify \
-  -H "X-API-Key: your-api-key" \
-  -F "file=@label.jpg"
+| Scenario | Expected Result |
+|---|---|
+| Fully compliant label | APPROVED — 0 issues |
+| Missing government warning | REJECTED |
+| `Government Warning:` in title case | REJECTED — Jenny's exact violation type |
+| `STONE'S THROW` vs `Stone's Throw` | Field-level MATCH — Dave's use case |
+| Poor image quality flag in extraction | Recommendation added; not auto-rejected |
+| Batch of 50 mixed labels | Aggregate counts returned: approved / rejected / needs_review |
 
-# Response includes:
-# - overall_status: APPROVED | REJECTED | NEEDS_REVIEW
-# - processing_time_ms: integer
-# - confidence: float (0-1)
-# - fields: {brand_name, class_type, alcohol_content, ...}
-# - issues: array of compliance issues
-# - recommendations: array of suggested actions
+---
+
+## Requirements Coverage
+
+### Stakeholder Matrix
+
+| Stakeholder | Requirement | Implementation | Status |
+|---|---|---|---|
+| Sarah Chen — Deputy Director | Processing under 5 seconds | Async Claude Vision; ~2.5s warm | Verified |
+| Sarah Chen | Handle 200–300 label batches | `/verify/batch` + client-side parallelism; 50 per request | Verified |
+| Sarah Chen | Accessible UI for non-technical staff | Drag-drop; color-coded results; single-button interface | Verified |
+| Marcus Williams — IT Systems | No PII storage | Stateless; images processed in memory only | Verified |
+| Marcus Williams | Function inside TTB firewall | Triple AI fallback; Azure OpenAI operates on-network | Verified |
+| Dave Morrison — Senior Agent | Fuzzy brand name matching | Unicode-normalized comparison; all apostrophe variants | Verified |
+| Jenny Park — Junior Agent | Strict government warning validation | ALL CAPS, phrase, and font size checks | Verified |
+| Jenny Park | Handle low-quality label images | Claude Vision handles rotation, glare, blur natively | Verified |
+
+### Technical Deliverables
+
+| Deliverable | Status |
+|---|---|
+| Source code repository | [github.com/eaglepython/AI-Powered-Alcohol-Label-Verification-App](https://github.com/eaglepython/AI-Powered-Alcohol-Label-Verification-App) |
+| Deployed frontend | [ai-powered-alcohol-label-verification.netlify.app](https://ai-powered-alcohol-label-verification.netlify.app) |
+| Deployed backend | [ttb-label-verifier-production-042a.up.railway.app](https://ttb-label-verifier-production-042a.up.railway.app) |
+| README and setup docs | This document + DEPLOYMENT.md |
+| Automated test suite | 30 tests, 0 failures — [backend/tests/](backend/tests/) |
+| Interactive API docs | [/docs](https://ttb-label-verifier-production-042a.up.railway.app/docs) |
+
+---
+
+## Performance
+
+> Measured on Railway free tier. Dedicated instances eliminate cold-start latency.
+
+| Metric | Target | Measured | Note |
+|---|---|---|---|
+| Single label — warm | < 5 seconds | ~2.5s | After initial service wake-up |
+| Single label — cold start | — | ~8–10s | Railway free tier wake-up only |
+| 50-label batch | < 5 minutes | ~3–4s | asyncio.gather concurrent execution |
+| AI extraction confidence | > 80% | 0.95 – 0.99 | Measured on live deployment |
+| Test suite | All pass | 30 / 30 | Zero failures |
+
+---
+
+## Security Controls
+
+| Control | Implementation |
+|---|---|
+| Authentication | `X-API-Key` header validated against `API_KEY` env var |
+| CORS | Restricted to configured `ALLOWED_ORIGINS`; no wildcard in production |
+| Rate limiting | Per-IP limits via slowapi on all AI-backed endpoints |
+| Input validation | MIME type check (JPEG/PNG/WebP only); 10 MB file size cap |
+| Image handling | In-memory processing only; never written to disk or persisted |
+| Container | Non-root `appuser` in Docker image |
+| Secrets | Environment variables only; `.env` gitignored; `.env.example` committed |
+| Transport | HTTPS enforced by Railway and Netlify on all production traffic |
+
+---
+
+## Data Flow
+
 ```
-
-### POST /verify/batch
-
-Batch verification (up to 50 files per request; split larger submissions across multiple requests)
-
-```bash
-curl -X POST http://localhost:8000/verify/batch \
-  -H "X-API-Key: your-api-key" \
-  -F "files=@label_1.jpg" \
-  -F "files=@label_2.jpg"
-
-# Response includes:
-# - total, approved, rejected, needs_review counts
-# - results: array of individual verification results
-# - total_processing_time_ms: total batch time
-```
-
-### GET /requirements
-
-TTB compliance requirements reference
-
-```bash
-curl http://localhost:8000/requirements
-
-# Response includes TTB label requirements and rules
-```
-
-### GET /docs
-
-Interactive Swagger UI documentation
-
-```
-http://localhost:8000/docs
+User selects image file
+        |
+        v
+Frontend validates file type (client-side)
+        |
+        v
+POST /verify — HTTPS, X-API-Key header, multipart/form-data
+        |
+        v
+Backend: file type and size validation
+        |
+        v
+Base64-encode image  -->  send to AI provider
+  Attempt 1:  Anthropic Claude claude-opus-4-6
+  Attempt 2:  NVIDIA NIM llama-3.2-90b-vision-instruct   (if Anthropic fails)
+  Attempt 3:  Azure OpenAI gpt-4-vision                  (if NVIDIA fails)
+        |
+        v
+Parse structured JSON extraction (8 fields)
+        |
+        v
+Compliance engine: run all validation rules
+        |
+        v
+Determine verdict: APPROVED / REJECTED / NEEDS REVIEW
+        |
+        v
+Write audit log entry
+        |
+        v
+Return VerificationResult JSON
+        |
+        v
+Frontend renders color-coded result card with field breakdown
 ```
 
 ---
 
-## Technology Stack
+## Project Structure
 
 ```
-FRONTEND
-├── React 18.3.1
-├── Vite 5.4.2
-├── JavaScript ES6+
-└── Drag-drop API
-
-BACKEND
-├── FastAPI 0.115
-├── Pydantic 2.9.2
-├── Python 3.11+
-├── asyncio (concurrent)
-└── httpx (async HTTP)
-
-AI/ML
-├── Claude Opus 4.6 (primary)
-├── Azure OpenAI GPT-4V (fallback)
-└── Vision processing
-
-INFRASTRUCTURE
-├── Docker
-├── Docker Compose
-├── Railway
-├── Azure Container Instances
-└── Netlify/Vercel (frontend)
-```
-
----
-
-## Troubleshooting Guide
-
-### Frontend Issues
-
-```
-Problem: Port 5173 already in use
-Solution: npx vite --port 3000
-
-Problem: Modules not found
-Solution: cd frontend && npm install
-
-Problem: Cannot reach backend
-Solution: Check VITE_API_URL environment variable
-```
-
-### Backend Issues
-
-```
-Problem: No module uvicorn
-Solution: pip install -r requirements.txt
-
-Problem: ANTHROPIC_API_KEY not found
-Solution: export ANTHROPIC_API_KEY="your-key"
-
-Problem: Port 8000 already in use
-Solution: Find process: lsof -i :8000, then kill
-```
-
-### Network Issues
-
-```
-Problem: Connection refused from frontend to backend
-Solution: Is backend running? Check http://localhost:8000/health
-
-Problem: Anthropic API blocked
-Solution: Configure AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_KEY
-
-Problem: Batch verification hangs
-Solution: Check concurrent request limits, split into smaller batches
+.
++-- backend/
+|   +-- main.py                  FastAPI application — routes, AI extraction, compliance engine
+|   +-- requirements.txt         Python dependencies (pinned versions)
+|   +-- Dockerfile               Non-root container image
+|   +-- Procfile                 Railway start command (shell-expanded PORT)
+|   +-- railway.toml             Railway deployment configuration
+|   +-- nixpacks.toml            Nixpacks build configuration
+|   +-- tests/
+|       +-- test_compliance.py   30 unit tests for compliance logic
++-- frontend/
+|   +-- src/
+|   |   +-- App.jsx              Complete React single-page application
+|   |   +-- main.jsx             Entry point
+|   +-- public/
+|   |   +-- _redirects           Netlify SPA routing configuration
+|   +-- Dockerfile               Multi-stage nginx production build
+|   +-- vite.config.js
++-- .env.example                 Environment variable reference (no secrets)
++-- .gitignore                   Excludes .env, node_modules, __pycache__, build outputs
++-- docker-compose.yml           Local full-stack development environment
++-- netlify.toml                 Netlify build settings and redirect rules
++-- DEPLOYMENT.md                Cloud deployment guide (Railway, Azure, Docker)
++-- README.md                    This document
 ```
 
 ---
 
-## Support
+## Design Decisions
 
-| Resource | Purpose |
-|----------|---------|
-| **GitHub Issues** | Bug reports, feature requests |
-| **API Docs** | http://localhost:8000/docs |
-| **Email** | rodabeck777@gmail.com |
-| **DEPLOYMENT.md** | Detailed deployment guide |
+### AI Vision vs Traditional OCR
 
----
+| Factor | AI Vision | Traditional OCR |
+|---|---|---|
+| Image quality tolerance | Handles rotation, glare, partial blur | Requires near-perfect input |
+| Semantic understanding | Identifies field meaning from context | Positional text extraction only |
+| Government warning validation | Understands format requirements | Raw text only |
+| Latency | ~2.5s | ~0.5s |
+| Vendor dependency | Mitigated by triple fallback chain | On-premise option available |
 
-## License
+**Decision:** The ~2 second latency increase is acceptable given substantially higher accuracy on real-world label photographs with inconsistent image quality — which is the primary failure mode of the existing manual process.
 
-MIT License - See LICENSE file for details
+### Stateless Architecture
 
-Built for: U.S. Department of the Treasury  
-Application: USAJOBS #858700600
+No database was introduced intentionally:
+- Zero PII persistence eliminates a federal data handling compliance risk
+- No schema migrations, backup infrastructure, or connection pooling required
+- Horizontal scaling requires no shared state coordination
+- Audit logs are written to the local filesystem and can be forwarded to Azure Blob Storage, S3, or a SIEM in production without architectural changes
 
----
+### Batch Size Cap at 50 Per Request
 
-## Author
-
-**Joseph Bidias**  
-Email: rodabeck777@gmail.com  
-GitHub: [github.com/eaglepython](https://github.com/eaglepython)
-
-**Repository:**
-```
-https://github.com/eaglepython/ttb-label-verification
-```
-
-Clone and deploy:
-```bash
-git clone https://github.com/eaglepython/ttb-label-verification.git
-cd ttb-label-verification
-# Follow setup instructions above or see DEPLOYMENT.md
-```
-
----
-
-<div align="center">
-
-**Built with attention to federal compliance requirements**
-
-v1.0.0 | 2024 | Department of the Treasury
-
-</div>
+The 50-label per request limit balances throughput against cost control and reliability:
+- Prevents a single request from exhausting the per-minute AI API rate limit
+- Limits maximum single-request processing time (50 labels × ~2.5s theoretical = capped exposure)
+- Client-side parallelism: a 200-label submission fires 4 concurrent batch requests, completing in approximately the same wall-clock time as a single 50-label batch
