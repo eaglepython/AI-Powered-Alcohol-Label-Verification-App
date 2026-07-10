@@ -297,32 +297,115 @@ Respond ONLY in this exact JSON format:
         audit_logger.error(f"Azure OpenAI extraction failed: {str(e)}")
         raise
 
+async def extract_label_fields_nvidia(image_bytes: bytes, filename: str) -> dict:
+    """Extract fields using NVIDIA NIM (llama-3.2-90b-vision-instruct)."""
+    try:
+        api_key = os.environ.get("NVIDIA_API_KEY", "")
+        if not api_key:
+            raise ValueError("NVIDIA_API_KEY not configured")
+
+        if filename.lower().endswith(".png"):
+            media_type = "image/png"
+        elif filename.lower().endswith(".webp"):
+            media_type = "image/webp"
+        else:
+            media_type = "image/jpeg"
+
+        image_data = base64.standard_b64encode(image_bytes).decode("utf-8")
+
+        prompt = """You are a TTB (Alcohol and Tobacco Tax and Trade Bureau) label compliance expert.
+Extract ALL of the following fields from this alcohol beverage label image.
+Be precise. If a field is not visible or not present, say "NOT FOUND".
+
+Extract these exact fields:
+1. BRAND_NAME: The brand name exactly as it appears on the label
+2. CLASS_TYPE: The class and type designation (e.g., "Kentucky Straight Bourbon Whiskey")
+3. ALCOHOL_CONTENT: Alcohol by volume percentage (e.g., "40% Alc./Vol.")
+4. NET_CONTENTS: Volume/net contents (e.g., "750 mL")
+5. PRODUCER_NAME: Name and address of bottler/producer/importer
+6. COUNTRY_OF_ORIGIN: Country of origin (required for imports, may not apply)
+7. GOVERNMENT_WARNING: The complete government warning text exactly as it appears
+8. WARNING_FORMAT: Describe the format of the government warning
+
+Respond ONLY in this exact JSON format:
+{
+  "brand_name": "exact text or NOT FOUND",
+  "class_type": "exact text or NOT FOUND",
+  "alcohol_content": "exact text or NOT FOUND",
+  "net_contents": "exact text or NOT FOUND",
+  "producer_name": "exact text or NOT FOUND",
+  "country_of_origin": "exact text or NOT APPLICABLE or NOT FOUND",
+  "government_warning": "exact text or NOT FOUND",
+  "warning_format": "description of warning format",
+  "image_quality": "GOOD or POOR - describe any issues",
+  "extraction_confidence": 0.0
+}"""
+
+        payload = {
+            "model": "meta/llama-3.2-90b-vision-instruct",
+            "messages": [{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:{media_type};base64,{image_data}"}
+                    },
+                    {"type": "text", "text": prompt}
+                ]
+            }],
+            "max_tokens": 1024,
+            "temperature": 0.1
+        }
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://integrate.api.nvidia.com/v1/chat/completions",
+                json=payload,
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                timeout=30.0
+            )
+            response.raise_for_status()
+            data = response.json()
+
+        text = data["choices"][0]["message"]["content"].strip()
+        text = re.sub(r'```json\s*', '', text)
+        text = re.sub(r'```\s*', '', text)
+        result = json.loads(text)
+        audit_logger.info(f"NVIDIA NIM extraction successful for {filename}")
+        return result
+
+    except Exception as e:
+        audit_logger.error(f"NVIDIA NIM extraction failed: {str(e)}")
+        raise
+
 async def extract_label_fields(image_bytes: bytes, filename: str) -> dict:
     """
     Extract TTB fields with intelligent fallback.
-    Primary: Anthropic Claude (fast, high quality)
-    Fallback: Azure OpenAI (for firewall-restricted networks)
-    
-    Per Marcus Williams: TTB network blocks outbound traffic to some domains.
-    This implementation supports both Anthropic (primary) and Azure OpenAI (behind corporate firewall).
+    Priority: Anthropic Claude → NVIDIA NIM → Azure OpenAI
     """
-    # Try Anthropic first (primary - fastest and most reliable)
+    # 1. Try Anthropic (primary — fastest, best vision quality)
     if os.environ.get("ANTHROPIC_API_KEY"):
         try:
             return await extract_label_fields_anthropic(image_bytes, filename)
         except Exception as e:
-            audit_logger.warning(f"Anthropic failed, attempting Azure fallback: {str(e)}")
-    
-    # Fall back to Azure OpenAI
+            audit_logger.warning(f"Anthropic failed, trying NVIDIA NIM: {str(e)}")
+
+    # 2. Try NVIDIA NIM (llama-3.2-90b-vision)
+    if os.environ.get("NVIDIA_API_KEY"):
+        try:
+            return await extract_label_fields_nvidia(image_bytes, filename)
+        except Exception as e:
+            audit_logger.warning(f"NVIDIA NIM failed, trying Azure: {str(e)}")
+
+    # 3. Fall back to Azure OpenAI (firewall-friendly)
     if os.environ.get("AZURE_OPENAI_ENDPOINT") and os.environ.get("AZURE_OPENAI_KEY"):
         try:
             return await extract_label_fields_azure(image_bytes, filename)
         except Exception as e:
-            audit_logger.error(f"Both Anthropic and Azure failed: {str(e)}")
-            raise HTTPException(500, f"Label extraction failed. Ensure API credentials are configured: {str(e)}")
-    
-    # No providers configured
-    raise HTTPException(500, "No LLM provider configured. Set ANTHROPIC_API_KEY or AZURE_OPENAI_* environment variables.")
+            audit_logger.error(f"All providers failed: {str(e)}")
+            raise HTTPException(500, f"Label extraction failed across all providers: {str(e)}")
+
+    raise HTTPException(500, "No LLM provider configured. Set ANTHROPIC_API_KEY, NVIDIA_API_KEY, or AZURE_OPENAI_* environment variables.")
 
 # ── CLAUDE VISION EXTRACTION ───────────────────────────────────
 
