@@ -16,10 +16,12 @@
 
 | | URL | Status |
 |---|---|---|
-| 🏛️ **Frontend** | [ai-powered-alcohol-label-verification.netlify.app](https://ai-powered-alcohol-label-verification.netlify.app) | ![Netlify Status](https://img.shields.io/website?url=https%3A%2F%2Fai-powered-alcohol-label-verification.netlify.app&style=flat-square) |
-| ⚡ **Backend API** | [ttb-label-verifier-production-042a.up.railway.app](https://ttb-label-verifier-production-042a.up.railway.app) | ![API Health](https://img.shields.io/website?url=https%3A%2F%2Fttb-label-verifier-production-042a.up.railway.app%2Fhealth&label=health&style=flat-square) |
+| 🏛️ **Frontend** | [ai-powered-alcohol-label-verification.netlify.app](https://ai-powered-alcohol-label-verification.netlify.app) | ![Netlify](https://img.shields.io/badge/netlify-deployed-00C7B7?style=flat-square&logo=netlify) |
+| ⚡ **Backend API** | [ttb-label-verifier-production-042a.up.railway.app](https://ttb-label-verifier-production-042a.up.railway.app) | ![Railway](https://img.shields.io/badge/railway-deployed-8B5CF6?style=flat-square&logo=railway) |
 | 📚 **API Docs** | [/docs](https://ttb-label-verifier-production-042a.up.railway.app/docs) | Swagger UI |
 | 🔗 **GitHub** | [eaglepython/AI-Powered-Alcohol-Label-Verification-App](https://github.com/eaglepython/AI-Powered-Alcohol-Label-Verification-App) | Public |
+
+> ⚠️ **Note:** Railway free tier sleeps after 30 min of inactivity — first request may take ~10s to wake up. Set up [UptimeRobot](https://uptimerobot.com) (free) to ping `/health` every 5 min to keep it warm.
 
 ---
 
