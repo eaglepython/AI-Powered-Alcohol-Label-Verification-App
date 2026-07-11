@@ -14,6 +14,20 @@ Built for the Alcohol and Tobacco Tax and Trade Bureau (TTB) — automating revi
 
 ---
 
+### Key Outcomes
+
+| Metric | Before | After | Change |
+|---|---|---|---|
+| Single label review time | 5–10 minutes (manual) | ~2.5 seconds (AI) | **99.6% reduction** |
+| 200-label batch time | 16–33 hours (sequential) | ~4 seconds (concurrent) | **99.9% reduction** |
+| Agent cognitive load | Field-by-field matching | Verification of AI result | High-value review only |
+| Vendor dependency | N/A | Triple AI fallback chain | Zero single-point-of-failure |
+| Data residency risk | N/A | Zero PII persistence | FISMA-aligned by design |
+
+> **Capacity freed:** At 7.5 minutes per label, 150,000 labels/year = 18,750 agent-hours. Redirecting even 50% of routine approvals to AI pre-screening reclaims ~9,375 hours annually — equivalent to approximately 4.5 FTEs at a GS-11 level.
+
+---
+
 ## Deployment
 
 | Service | URL | Platform |
@@ -24,6 +38,30 @@ Built for the Alcohol and Tobacco Tax and Trade Bureau (TTB) — automating revi
 | **Source Code** | [github.com/eaglepython/AI-Powered-Alcohol-Label-Verification-App](https://github.com/eaglepython/AI-Powered-Alcohol-Label-Verification-App) | Public Repository |
 
 > **Railway free tier** enters sleep mode after 30 minutes of inactivity. First request wakes the service (~10s). Configure [UptimeRobot](https://uptimerobot.com) to ping `/health` every 5 minutes to maintain availability.
+
+---
+
+## Live Demo
+
+The system is deployed and accepting requests. Run the following against the live backend:
+
+```bash
+# Health check
+curl https://ttb-label-verifier-production-042a.up.railway.app/health
+# Expected: {"status":"healthy"}
+
+# Review the TTB field requirements
+curl https://ttb-label-verifier-production-042a.up.railway.app/requirements
+
+# Verify a label image (replace with your own JPEG/PNG)
+curl -X POST https://ttb-label-verifier-production-042a.up.railway.app/verify \
+  -F "file=@your_label.jpg"
+
+# Interactive Swagger UI — test all endpoints in-browser
+open https://ttb-label-verifier-production-042a.up.railway.app/docs
+```
+
+> If the first request takes ~10 seconds, the Railway instance is waking from sleep. Subsequent requests respond in ~2.5 seconds.
 
 ---
 
@@ -522,3 +560,53 @@ The 50-label per request limit balances throughput against cost control and reli
 - Prevents a single request from exhausting the per-minute AI API rate limit
 - Limits maximum single-request processing time (50 labels × ~2.5s theoretical = capped exposure)
 - Client-side parallelism: a 200-label submission fires 4 concurrent batch requests, completing in approximately the same wall-clock time as a single 50-label batch
+
+---
+
+## Federal IT Competencies Demonstrated
+
+This project was constructed to reflect the core competencies evaluated for IT Specialist (SYSANALYSIS / APPSW) positions in the federal government per OPM's IT job family standard.
+
+| Competency (OPM IT-2210) | Demonstrated In This Project |
+|---|---|
+| **Requirements Analysis** | Stakeholder matrix with 5 named TTB personas; all requirements traced to implementation |
+| **Systems Architecture** | Triple AI fallback chain; stateless design for FISMA alignment; FedRAMP path via Azure OpenAI |
+| **Technology Evaluation** | Documented rationale for each technology choice; alternatives explicitly considered and rejected |
+| **Security Management** | OWASP controls: CORS restriction, API key auth, rate limiting, non-root container, zero PII storage |
+| **Application Development** | Full-stack delivery: FastAPI backend, React frontend, Docker, cloud deployment |
+| **AI / Emerging Technology** | Multi-provider AI integration (Anthropic, NVIDIA NIM, Azure OpenAI); vision model prompt engineering |
+| **Testing and QA** | 30-test automated suite with 100% pass rate; coverage across compliance rules and edge cases |
+| **Documentation** | OpenAPI 3.0 auto-generated docs; deployment runbook (DEPLOYMENT.md); operator README |
+| **Cloud / Infrastructure** | Railway (backend), Netlify (frontend), Docker Compose (local), Procfile for platform-agnostic deploy |
+| **Stakeholder Communication** | Problem statement framed in business impact (agent-hours, FTE equivalents, batch throughput) |
+
+---
+
+## Production Roadmap
+
+The following items represent the natural next phase for a TTB production deployment. None are required for the current evaluation — all architectural decisions have been made to accommodate them without rework.
+
+| Priority | Item | Rationale |
+|---|---|---|
+| High | **COLA Registry API integration** | Pre-populate brand name and class from TTB's own database; eliminate one AI extraction field |
+| High | **Azure Government (MAG) deployment** | Move backend to Azure Government Cloud for full FedRAMP High authorization |
+| High | **Active Directory / PIV card SSO** | Replace API key auth with CAC/PIV via Azure AD; required for GS-level user accountability |
+| Medium | **Fine-tuned TTB vision model** | Domain-specific model trained on historical COLA approval/rejection data; higher accuracy, lower API cost |
+| Medium | **Structured audit export** | Nightly CSV/JSON export of audit logs to Azure Blob Storage for OCIO records retention compliance |
+| Medium | **Agent review queue UI** | Upgrade from single-label to a queue dashboard: pending / in-review / approved / rejected workflow |
+| Low | **Confidence threshold tuning** | A/B test confidence cutoffs by label type (domestic vs. import) to optimize auto-approve rate |
+| Low | **Section 508 accessibility audit** | WCAG 2.1 AA compliance review of the React frontend for TTB internal deployment |
+
+---
+
+## About This Project
+
+This system was developed as a technical demonstration for the **IT Specialist (Artificial Intelligence)** position evaluation. It is a complete, production-deployed application — not a prototype or mockup.
+
+| Aspect | Detail |
+|---|---|
+| **Scope** | Full-stack application, cloud-deployed, with live endpoints |
+| **Regulatory Alignment** | TTB 27 CFR Part 4, Part 5, Part 7, Part 16 (Government Warning) |
+| **Security Baseline** | OWASP Top 10 mitigations applied; designed for FISMA Moderate path |
+| **AI Governance** | No PII stored; AI decisions are advisory — human agent retains final approval authority |
+| **Code Quality** | 30 automated tests; all dependencies pinned; secrets externalized via environment variables |
