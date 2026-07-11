@@ -304,6 +304,57 @@ Concurrent batch (this system):     50 labels in ~3–4 seconds
 200-label job:                      4 parallel requests = ~3–4 seconds total
 ```
 
+### Per-Field Confidence Scoring
+
+Every field in the response carries an individual extraction confidence score (0.0–1.0), separate from the overall label confidence.
+
+```
+Field              Value                        Confidence   Status
+-----------        ---------------------------  ----------   ------
+brand_name         OLD TOM DISTILLERY           99%          PASS
+class_type         Kentucky Straight Bourbon    97%          PASS
+alcohol_content    45% Alc./Vol. (90 Proof)     99%          PASS
+net_contents       750 mL                       98%          PASS
+producer_name      Old Tom Distillery, KY       94%          PASS
+government_warning GOVERNMENT WARNING: ...      89%          PASS
+country_of_origin  NOT APPLICABLE               95%          PASS
+```
+
+The frontend renders each score as a color-coded badge directly on the field row:
+
+- **Green (90%+)** — high-confidence extraction; no agent action needed
+- **Yellow (70–89%)** — moderate confidence; agent should spot-check the physical label
+- **Red (<70%)** — low confidence; treat as unverified regardless of compliance status
+
+Scores come directly from the AI's self-reported certainty per field. When a field is not found, its confidence is set to `0.2 × overall_confidence` to reflect the distinction between "not found" and "found but unreadable."
+
+### CSV Export
+
+A one-click export button appears in the results header whenever verification results are present — single or batch.
+
+The downloaded CSV contains one row per label:
+
+| Column | Description |
+|---|---|
+| Label | Filename |
+| Status | APPROVED / REJECTED / NEEDS_REVIEW |
+| Confidence | Overall extraction confidence |
+| Time (ms) | Processing time |
+| Issues | Pipe-separated compliance issue list |
+| Brand Name through Country of Origin | Extracted field values |
+| Gov Warning | Compliant: Yes / No |
+
+Generates client-side from the response JSON — no additional backend request or server storage.
+
+### Mobile-Responsive Interface
+
+The UI adapts to tablets and phones via CSS media queries (`max-width: 640px`):
+
+- Header wraps and reflows at small widths
+- Content padding reduces to use full screen width
+- Batch summary stats stack vertically instead of side by side
+- Drag-drop upload zone remains functional; on mobile the native browser file picker presents both gallery and camera options
+
 ### Audit Logging
 
 Every request produces a structured log entry for compliance and audit trail:
@@ -344,13 +395,13 @@ Every request produces a structured log entry for compliance and audit trail:
   "processing_time_ms": 7845,
   "confidence": 0.99,
   "fields": {
-    "brand_name":         { "value": "OLD TOM DISTILLERY",              "found": true, "compliant": true,  "issue": null },
-    "class_type":         { "value": "Kentucky Straight Bourbon Whiskey","found": true, "compliant": true,  "issue": null },
-    "alcohol_content":    { "value": "45% Alc./Vol. (90 Proof)",        "found": true, "compliant": true,  "issue": null },
-    "net_contents":       { "value": "750 mL",                          "found": true, "compliant": true,  "issue": null },
-    "producer_name":      { "value": "Old Tom Distillery, Louisville KY","found": true, "compliant": true,  "issue": null },
-    "government_warning": { "value": "GOVERNMENT WARNING: ...",         "found": true, "compliant": true,  "issue": null },
-    "country_of_origin":  { "value": "NOT APPLICABLE",                  "found": true, "compliant": true,  "issue": null }
+    "brand_name":         { "value": "OLD TOM DISTILLERY",              "found": true, "compliant": true, "confidence": 0.99, "issue": null },
+    "class_type":         { "value": "Kentucky Straight Bourbon Whiskey","found": true, "compliant": true, "confidence": 0.97, "issue": null },
+    "alcohol_content":    { "value": "45% Alc./Vol. (90 Proof)",        "found": true, "compliant": true, "confidence": 0.99, "issue": null },
+    "net_contents":       { "value": "750 mL",                          "found": true, "compliant": true, "confidence": 0.98, "issue": null },
+    "producer_name":      { "value": "Old Tom Distillery, Louisville KY","found": true, "compliant": true, "confidence": 0.94, "issue": null },
+    "government_warning": { "value": "GOVERNMENT WARNING: ...",         "found": true, "compliant": true, "confidence": 0.89, "issue": null },
+    "country_of_origin":  { "value": "NOT APPLICABLE",                  "found": true, "compliant": true, "confidence": 0.95, "issue": null }
   },
   "issues": [],
   "recommendations": ["Label appears compliant. Recommend agent review for final approval."]
@@ -412,11 +463,14 @@ python -m pytest tests/ -v
 | Sarah Chen — Deputy Director | Processing under 5 seconds | Async Claude Vision; ~2.5s warm | Verified |
 | Sarah Chen | Handle 200–300 label batches | `/verify/batch` + client-side parallelism; 50 per request | Verified |
 | Sarah Chen | Accessible UI for non-technical staff | Drag-drop; color-coded results; single-button interface | Verified |
+| Sarah Chen | Export batch results for reporting | One-click CSV export from results view | Verified |
 | Marcus Williams — IT Systems | No PII storage | Stateless; images processed in memory only | Verified |
 | Marcus Williams | Function inside TTB firewall | Triple AI fallback; Azure OpenAI operates on-network | Verified |
 | Dave Morrison — Senior Agent | Fuzzy brand name matching | Unicode-normalized comparison; all apostrophe variants | Verified |
+| Dave Morrison | Flag borderline extractions for review | Per-field confidence badges; yellow/red threshold indicators | Verified |
 | Jenny Park — Junior Agent | Strict government warning validation | ALL CAPS, phrase, and font size checks | Verified |
 | Jenny Park | Handle low-quality label images | Claude Vision handles rotation, glare, blur natively | Verified |
+| Jenny Park | Field use on tablet or phone | Mobile-responsive layout; native camera/gallery access | Verified |
 
 ### Technical Deliverables
 
@@ -599,14 +653,14 @@ Each item is mapped to the stakeholder who identified the need.
 
 ### Phase 2 — Agent Workflow Enhancements
 
-| Priority | Item | Stakeholder | Rationale |
+| Priority | Item | Stakeholder | Status |
 |---|---|---|---|
-| High | **Per-field confidence scores** | Dave | Surface extraction confidence per field, not just overall; low-confidence fields flagged for agent spot-check without blocking approval |
-| High | **Manual override and appeal workflow** | Dave | Agent can override AI verdict with a required reason code; creates an immutable audit trail and feeds correction data back to the model |
-| Medium | **Agent review queue dashboard** | Sarah | Upgrade from single-label UI to a full queue: pending / in-review / approved / rejected with assignment and SLA indicators |
-| Medium | **Batch results export (CSV/PDF)** | Sarah | One-click export of batch run results including per-label extraction detail, verdict, confidence, and processing timestamp for supervisor reporting |
-| Medium | **Historical label cross-reference** | Dave | Index of previously verified brand names (no images stored); agent can query "last 5 verifications for Stone's Throw" to spot repeat issues |
-| Medium | **Issue location overlay on image** | Jenny | Highlight the detected location of each required field directly on the label image; missing fields marked explicitly rather than inferred from absence |
+| High | **Per-field confidence scores** | Dave | **Implemented** — color-coded badge per field; green/yellow/red thresholds |
+| High | **Manual override and appeal workflow** | Dave | Roadmap — requires override endpoint + reason code UI |
+| Medium | **Agent review queue dashboard** | Sarah | Roadmap — requires persistent queue state |
+| Medium | **Batch results export (CSV)** | Sarah | **Implemented** — one-click CSV download from results view |
+| Medium | **Historical label cross-reference** | Dave | Roadmap — requires label index database |
+| Medium | **Issue location overlay on image** | Jenny | Roadmap — requires canvas annotation layer |
 
 ### Phase 3 — Platform Maturity
 
@@ -616,7 +670,7 @@ Each item is mapped to the stakeholder who identified the need.
 | Medium | **Structured audit log export** | Marcus | Nightly export to Azure Blob Storage for OCIO records retention compliance; SIEM-compatible JSON format |
 | Medium | **Performance analytics dashboard** | Sarah / Marcus | Processing volume, average latency, approval/rejection rate by beverage type, AI provider fallback frequency — supports capacity planning |
 | Low | **Webhook / COLA event integration** | Marcus | Push verification results to COLA system automatically on approval; structured polling endpoint for async consumer workflows |
-| Low | **Mobile-responsive UI with camera capture** | Jenny | Tablet and phone layout for field use; native camera input so agents can photograph labels on-site without separate upload step |
+| Low | **Mobile-responsive UI with camera capture** | Jenny | **Implemented** — responsive layout at 640px breakpoint; native camera/gallery via `accept="image/*"` |
 | Low | **Confidence threshold tuning by label type** | Sarah | Separate auto-approve confidence cutoffs for domestic vs. import labels based on historical error rate analysis |
 | Low | **Section 508 / WCAG 2.1 AA compliance** | All | Full keyboard navigation, screen reader support, high-contrast mode; required for federal internal deployment |
 
@@ -632,4 +686,4 @@ This system was developed as a technical demonstration for the **IT Specialist (
 | **Regulatory Alignment** | TTB 27 CFR Part 4, Part 5, Part 7, Part 16 (Government Warning) |
 | **Security Baseline** | OWASP Top 10 mitigations applied; designed for FISMA Moderate path |
 | **AI Governance** | No PII stored; AI decisions are advisory — human agent retains final approval authority |
-| **Code Quality** | 30 automated tests; all dependencies pinned; secrets externalized via environment variables |
+| **Code Quality** | 30 automated tests; all dependencies pinned; secrets externalized via environment variables; per-field AI confidence scoring; CSV export; mobile-responsive layout |
