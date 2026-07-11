@@ -586,16 +586,39 @@ This project was constructed to reflect the core competencies evaluated for IT S
 
 The following items represent the natural next phase for a TTB production deployment. None are required for the current evaluation — all architectural decisions have been made to accommodate them without rework.
 
-| Priority | Item | Rationale |
-|---|---|---|
-| High | **COLA Registry API integration** | Pre-populate brand name and class from TTB's own database; eliminate one AI extraction field |
-| High | **Azure Government (MAG) deployment** | Move backend to Azure Government Cloud for full FedRAMP High authorization |
-| High | **Active Directory / PIV card SSO** | Replace API key auth with CAC/PIV via Azure AD; required for GS-level user accountability |
-| Medium | **Fine-tuned TTB vision model** | Domain-specific model trained on historical COLA approval/rejection data; higher accuracy, lower API cost |
-| Medium | **Structured audit export** | Nightly CSV/JSON export of audit logs to Azure Blob Storage for OCIO records retention compliance |
-| Medium | **Agent review queue UI** | Upgrade from single-label to a queue dashboard: pending / in-review / approved / rejected workflow |
-| Low | **Confidence threshold tuning** | A/B test confidence cutoffs by label type (domestic vs. import) to optimize auto-approve rate |
-| Low | **Section 508 accessibility audit** | WCAG 2.1 AA compliance review of the React frontend for TTB internal deployment |
+Each item is mapped to the stakeholder who identified the need.
+
+### Phase 1 — Infrastructure and Authorization
+
+| Priority | Item | Stakeholder | Rationale |
+|---|---|---|---|
+| High | **Azure Government (MAG) deployment** | Marcus | Move backend to Azure Government Cloud for full FedRAMP High authorization |
+| High | **Active Directory / PIV card SSO** | Marcus | Replace API key auth with CAC/PIV via Azure AD; required for GS-level user accountability |
+| High | **COLA Registry API integration** | Marcus | Pre-populate brand name and class from TTB's own database; eliminate one AI extraction field |
+| High | **Compliance rule versioning** | Marcus | Store the active rule version with each verification record; enables re-verification under prior rules for historical appeals and audit defense |
+
+### Phase 2 — Agent Workflow Enhancements
+
+| Priority | Item | Stakeholder | Rationale |
+|---|---|---|---|
+| High | **Per-field confidence scores** | Dave | Surface extraction confidence per field, not just overall; low-confidence fields flagged for agent spot-check without blocking approval |
+| High | **Manual override and appeal workflow** | Dave | Agent can override AI verdict with a required reason code; creates an immutable audit trail and feeds correction data back to the model |
+| Medium | **Agent review queue dashboard** | Sarah | Upgrade from single-label UI to a full queue: pending / in-review / approved / rejected with assignment and SLA indicators |
+| Medium | **Batch results export (CSV/PDF)** | Sarah | One-click export of batch run results including per-label extraction detail, verdict, confidence, and processing timestamp for supervisor reporting |
+| Medium | **Historical label cross-reference** | Dave | Index of previously verified brand names (no images stored); agent can query "last 5 verifications for Stone's Throw" to spot repeat issues |
+| Medium | **Issue location overlay on image** | Jenny | Highlight the detected location of each required field directly on the label image; missing fields marked explicitly rather than inferred from absence |
+
+### Phase 3 — Platform Maturity
+
+| Priority | Item | Stakeholder | Rationale |
+|---|---|---|---|
+| Medium | **Fine-tuned TTB vision model** | All | Domain-specific model trained on historical COLA approval/rejection data; higher accuracy, lower per-call API cost |
+| Medium | **Structured audit log export** | Marcus | Nightly export to Azure Blob Storage for OCIO records retention compliance; SIEM-compatible JSON format |
+| Medium | **Performance analytics dashboard** | Sarah / Marcus | Processing volume, average latency, approval/rejection rate by beverage type, AI provider fallback frequency — supports capacity planning |
+| Low | **Webhook / COLA event integration** | Marcus | Push verification results to COLA system automatically on approval; structured polling endpoint for async consumer workflows |
+| Low | **Mobile-responsive UI with camera capture** | Jenny | Tablet and phone layout for field use; native camera input so agents can photograph labels on-site without separate upload step |
+| Low | **Confidence threshold tuning by label type** | Sarah | Separate auto-approve confidence cutoffs for domestic vs. import labels based on historical error rate analysis |
+| Low | **Section 508 / WCAG 2.1 AA compliance** | All | Full keyboard navigation, screen reader support, high-contrast mode; required for federal internal deployment |
 
 ---
 
