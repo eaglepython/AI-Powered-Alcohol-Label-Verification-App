@@ -102,6 +102,7 @@ class LabelField(BaseModel):
     found: bool = False
     compliant: bool = False
     issue: Optional[str] = None
+    confidence: Optional[float] = None
 
 class VerificationResult(BaseModel):
     label_id: str
@@ -164,6 +165,15 @@ Respond ONLY in this exact JSON format:
   "government_warning": "exact text or NOT FOUND",
   "warning_format": "description of warning format",
   "image_quality": "GOOD or POOR - describe any issues like angle, glare, blur",
+  "field_confidence": {
+    "brand_name": 0.0,
+    "class_type": 0.0,
+    "alcohol_content": 0.0,
+    "net_contents": 0.0,
+    "producer_name": 0.0,
+    "country_of_origin": 0.0,
+    "government_warning": 0.0
+  },
   "extraction_confidence": 0.0 to 1.0
 }"""
 
@@ -631,6 +641,12 @@ async def verify_label(request: Request, file: UploadFile = File(...), _: None =
 
     fields, issues, recommendations = run_compliance_checks(extracted)
 
+    # Populate per-field extraction confidence
+    _fc_map = extracted.get("field_confidence", {})
+    _oc = float(extracted.get("extraction_confidence", 0.85))
+    for _k, _f in fields.items():
+        _f["confidence"] = float(_fc_map[_k]) if _k in _fc_map else (_oc if _f["found"] else round(_oc * 0.2, 2))
+
     # Determine overall status
     critical_fields = ["brand_name", "alcohol_content", "government_warning"]
     critical_issues = [f for f in critical_fields if not fields[f]["compliant"]]
@@ -683,6 +699,10 @@ async def verify_batch(request: Request, files: list[UploadFile] = File(...), _:
             image_bytes = await file.read()
             extracted = await extract_label_fields(image_bytes, file.filename or "label.jpg")
             fields, issues, recommendations = run_compliance_checks(extracted)
+            _fc_map = extracted.get("field_confidence", {})
+            _oc = float(extracted.get("extraction_confidence", 0.85))
+            for _k, _f in fields.items():
+                _f["confidence"] = float(_fc_map[_k]) if _k in _fc_map else (_oc if _f["found"] else round(_oc * 0.2, 2))
             critical_fields = ["brand_name", "alcohol_content", "government_warning"]
             critical_issues = [f for f in critical_fields if not fields[f]["compliant"]]
             if not issues:

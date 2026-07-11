@@ -22,7 +22,18 @@ function FieldRow({ name, field }) {
         {field.compliant ? "✅" : field.found ? "⚠️" : "❌"}
       </span>
       <div style={{ flex: 1 }}>
-        <div style={{ fontWeight: 600, fontSize: 13, color: "#374151", marginBottom: 2 }}>{label}</div>
+        <div style={{ fontWeight: 600, fontSize: 13, color: "#374151", marginBottom: 2, display: "flex", alignItems: "center", gap: 6 }}>
+          {label}
+          {field.confidence != null && (
+            <span style={{
+              fontSize: 11, fontWeight: 600, borderRadius: 10, padding: "1px 7px",
+              background: field.confidence >= 0.9 ? "#dcfce7" : field.confidence >= 0.7 ? "#fef9c3" : "#fee2e2",
+              color: field.confidence >= 0.9 ? "#15803d" : field.confidence >= 0.7 ? "#a16207" : "#b91c1c"
+            }}>
+              {Math.round(field.confidence * 100)}%
+            </span>
+          )}
+        </div>
         {field.value
           ? <div style={{ fontSize: 13, color: "#6b7280", wordBreak: "break-word" }}>{field.value}</div>
           : <div style={{ fontSize: 13, color: "#ef4444", fontStyle: "italic" }}>Not found</div>
@@ -124,6 +135,32 @@ function ResultCard({ result, index }) {
   );
 }
 
+const exportToCSV = (results, filename = "ttb_verification_results.csv") => {
+  const headers = ["Label", "Status", "Confidence", "Time (ms)", "Issues", "Brand Name", "Class Type", "Alcohol Content", "Net Contents", "Producer", "Country of Origin", "Gov Warning"];
+  const rows = results.map(r => [
+    r.label_id,
+    r.overall_status,
+    Math.round((r.confidence || 0) * 100) + "%",
+    r.processing_time_ms,
+    (r.issues || []).join("; "),
+    r.fields?.brand_name?.value || "",
+    r.fields?.class_type?.value || "",
+    r.fields?.alcohol_content?.value || "",
+    r.fields?.net_contents?.value || "",
+    r.fields?.producer_name?.value || "",
+    r.fields?.country_of_origin?.value || "",
+    r.fields?.government_warning?.compliant ? "Yes" : "No",
+  ]);
+  const csv = [headers, ...rows]
+    .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+};
+
 export default function App() {
   const [files, setFiles] = useState([]);
   const [results, setResults] = useState([]);
@@ -199,7 +236,7 @@ export default function App() {
     <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "system-ui, -apple-system, sans-serif" }}>
 
       {/* HEADER */}
-      <div style={{ background: "#003366", padding: "16px 24px", display: "flex", alignItems: "center", gap: 14 }}>
+      <div className="ttb-header" style={{ background: "#003366", padding: "16px 24px", display: "flex", alignItems: "center", gap: 14 }}>
         <div style={{ fontSize: 28 }}>🏛️</div>
         <div>
           <div style={{ color: "white", fontWeight: 700, fontSize: 18, lineHeight: 1.2 }}>
@@ -214,7 +251,7 @@ export default function App() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 860, margin: "0 auto", padding: "32px 20px" }}>
+      <div className="ttb-content" style={{ maxWidth: 860, margin: "0 auto", padding: "32px 20px" }}>
 
         {/* UPLOAD ZONE */}
         <div
@@ -241,7 +278,7 @@ export default function App() {
             Drag and drop or click to browse · JPEG, PNG, WebP
           </div>
           <div style={{ color: "#94a3b8", fontSize: 12 }}>
-            Single label or batch upload (up to 50 labels)
+            Single label or batch upload (up to 50 labels) &middot; On mobile, tap to use camera or gallery
           </div>
           <input
             id="file-input" type="file" accept="image/*" multiple
@@ -311,7 +348,7 @@ export default function App() {
             <div style={{ fontWeight: 700, color: "#1e293b", marginBottom: 12, fontSize: 15 }}>
               Batch Results — {batchSummary.total} labels in {batchSummary.total_ms}ms
             </div>
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <div className="ttb-batch-stats" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               {[
                 { label: "Approved", count: batchSummary.approved, color: "#16a34a", bg: "#f0fdf4" },
                 { label: "Rejected", count: batchSummary.rejected, color: "#dc2626", bg: "#fef2f2" },
@@ -332,8 +369,18 @@ export default function App() {
         {/* RESULTS */}
         {results.length > 0 && (
           <div>
-            <div style={{ fontWeight: 700, color: "#1e293b", marginBottom: 14, fontSize: 16 }}>
-              Verification Results
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <div style={{ fontWeight: 700, color: "#1e293b", fontSize: 16 }}>Verification Results</div>
+              <button
+                onClick={() => exportToCSV(results)}
+                style={{
+                  background: "#003366", color: "white", border: "none",
+                  borderRadius: 8, padding: "8px 16px", fontSize: 13,
+                  fontWeight: 600, cursor: "pointer"
+                }}
+              >
+                Export CSV
+              </button>
             </div>
             {results.map((result, i) => (
               <ResultCard key={i} result={result} index={i} />
@@ -348,7 +395,15 @@ export default function App() {
         </div>
       </div>
 
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @media (max-width: 640px) {
+          .ttb-header { flex-wrap: wrap; padding: 12px 14px !important; }
+          .ttb-header > div:last-child { margin-left: 0 !important; }
+          .ttb-content { padding: 16px 10px !important; }
+          .ttb-batch-stats { flex-direction: column !important; }
+        }
+      `}</style>
     </div>
   );
 }
